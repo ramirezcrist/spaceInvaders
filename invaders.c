@@ -123,7 +123,7 @@ int invasor(){
  	break;
 	}
 //semaforo
-sleep(3);
+sleep(5);
  
 
 return 0;
