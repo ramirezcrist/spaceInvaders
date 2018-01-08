@@ -4,7 +4,7 @@
 
 struct player {
 	int r,c;
-	char ch;
+	char ch[6];
 };
 
 struct alien {

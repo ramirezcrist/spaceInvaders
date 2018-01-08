@@ -11,48 +11,78 @@
 #include <sys/sem.h>
 #define MAX_BOMBS 1000
 #define SHSIZE 1000
-void menu(struct options *settings);
-void gameover(int win);
 
-
-
+  key_t Llave; 
+  int semaforo; 
+  int cantidadJugadores;
+  struct sembuf Proceso; 
+  struct sembuf Proceso2; 
+  
+  void menu(struct options *settings);
+  void gameover(int win);
+  int defensor();
+  int invasor();
 union semun{ 
-int val; 
-struct semid_ds * buf; 
-short int *array; 
-struct seminfo *__buf; 
+  int val; 
+  struct semid_ds * buf; 
+  short int *array; 
+  struct seminfo *__buf; 
 }; 
 
 
 int main() {
-   
- //semaforo
- key_t Llave; 
-int semaforo; 
-struct sembuf Proceso; 
-struct sembuf Proceso2; 
-int ix = 0 ; 
-Llave = ftok ("/bin/ls", 313); 
-semaforo = semget (Llave, 10, 0600 | IPC_CREAT);
- semctl (semaforo, 0, SETVAL, 0); 
- Proceso.sem_num = 0; 
- Proceso.sem_op = -1;
- Proceso.sem_flg = 0;
+  char jugador;
+  cantidadJugadores = 0;
 
- Proceso2.sem_num = 0;
- Proceso2.sem_op = 1;
- Proceso2.sem_flg = 0;
+  //semaforo
 
+	Llave = ftok ("/bin/ls", 313); 
+ 	semaforo = semget (Llave, 10, 0600 | IPC_CREAT);
+ 	semctl (semaforo, 0, SETVAL, 0); 
  
-while (1){ 
+  //end semafo
 
-        printf(" Defensor, esperando al oponente invasor.... \n");
- 	semop (semaforo, &Proceso, 1);
-sleep(3);
 
- semop(semaforo,&Proceso2, 1);
+  initscr();
+inicio:
+  mvaddstr(0,(COLS/2)-12, "SELECCIONE: A. Defensor");
+  refresh();
 
-	//if(ix==11){ 
+  mvaddstr(1,(COLS/2), "B. Invasor");
+  refresh();
+  move(2,0);
+  refresh();
+  jugador = getch();
+
+  if(jugador == 'A'){
+		
+		defensor();
+           	
+  }else if(jugador == 'B'){
+	
+	        invasor();
+  }  
+  	endwin();		
+  return 0;
+ 
+}
+
+int invasor(){
+   clear();
+   echo();
+   nocbreak();
+   nodelay(stdscr,0);
+//semaforo
+
+ 	Proceso2.sem_num = 0; 
+ 	Proceso2.sem_op  = 1;
+ 	Proceso2.sem_flg = 0;
+ 
+	while (1){ 
+
+        printf("Invasor, esperando al oponente defensor.... \n");
+ 	semop (semaforo, &Proceso2, 1);
+ 
     	printf("   En sus marcas..!! \n");
 	sleep(1);
 	printf("   Listos..?! \n");
@@ -60,15 +90,47 @@ sleep(3);
 	printf("   JUEGUEN!! \n");
 	sleep(1);
  	break;
- 	//} 
-	//else{ 
-	//printf("%d Esperando semaforo en verde.... \n",ix);
- 	//semop (semaforo, &Proceso, 1);
- 	// AREA PROTEGIDA 
-	//printf("%d Saliendo del area critica - Semaforo en rojo \n",ix); 
-	//ix++;
-	// }
- }
+	}
+//semaforo
+
+return 0;
+}
+
+int defensor(){
+   clear();
+   echo();
+   nocbreak();
+   nodelay(stdscr,0);
+
+ //semaforo
+ 
+ 
+ 	Proceso.sem_num = 0; 
+ 	Proceso.sem_op = -1;
+ 	Proceso.sem_flg = 0;
+ 
+	while (1){ 
+
+        printf("\n Defensor, esperando al oponente invasor.... \n");
+ 	semop (semaforo, &Proceso, 1);
+
+	
+    	printf("   En sus marcas..!! \n");
+	sleep(1);
+	printf("   Listos..?! \n");
+	sleep(1);
+	printf("   JUEGUEN!! \n");
+	sleep(1);
+ 	break;
+	 	//} 
+		//else{ 
+		//printf("%d Esperando semaforo en verde.... \n",ix);
+	 	//semop (semaforo, &Proceso, 1);
+	 	// AREA PROTEGIDA 
+		//printf("%d Saliendo del area critica - Semaforo en rojo \n",ix); 
+		//ix++;
+		// }
+ 	}//fin del while
 //fin semaforo
    
 
@@ -138,12 +200,12 @@ sleep(3);
    settings.alien = 12;
    settings.shots = 3;
    settings.bombs = 10;
-   settings.bombchance = 5;
+   settings.bombchance = 1;
 
    /* Set tank settings */
    tank.r = LINES - 1;
    tank.c = COLS / 2;
-   tank.ch = 'T';
+   strcpy(tank.ch,"<--->");
 
    /* Set aliens settings */
    for (i=0; i<10; ++i) {
@@ -183,7 +245,7 @@ sleep(3);
    /* Set bomb settings */
    for (i=0; i<MAX_BOMBS; ++i) {
       bomb[i].active = 0;
-      bomb[i].ch = 'o';
+      bomb[i].ch = '*';
       bomb[i].loop = 0;
    }
    
@@ -205,7 +267,7 @@ sleep(3);
       
       /* Move tank */
       move(tank.r,tank.c);
-      addch(tank.ch);
+      addstr(tank.ch);
       
       /* Move bombs */
       if (loops % settings.bombs == 0)
@@ -246,7 +308,7 @@ sleep(3);
                
                for (j=0; j<30; ++j) {
                   if (aliens[j].alive == 1 && aliens[j].r == shot[i].r && aliens[j].pc == shot[i].c) {
-                     score += 20;
+                     score += 10; //se suman 2
                      aliens[j].alive = 0;
                      shot[i].active = 0;
                      --currentshots;
@@ -324,6 +386,10 @@ sleep(3);
          win = 1;
          break;
       }
+	if (score == 100) {
+         win = 1;
+         break;
+      }
       for (i=0; i<30; ++i) {
          if (aliens[i].r == LINES-1) {
             win = 0;
@@ -358,15 +424,14 @@ sleep(3);
             if (shot[i].active == 0) {
                shot[i].active = 1;
                ++currentshots;
-               --score;
+              // --score;
                shot[i].r = LINES - 2;
                shot[i].c = tank.c;
                break;
             }
          }
       }
-      else if (input == 'm')
-         menu(&settings); 
+      
       
       if (win != -1)
          break;
@@ -383,187 +448,6 @@ sleep(3);
    return 0;
 }
 
-/* This function handles the menu options available to the user */
-void menu(struct options *settings) {
-   char option, buf[30];
-   int new;
-
-   clear();
-   echo();
-   nocbreak();
-   nodelay(stdscr,0);
-
-   move(0,0);
-   addstr("1. Change overall game speed");
-   move(1,0);
-   addstr("2. Change alien motion speed");
-   move(2,0);
-   addstr("3. Change tank shot speed");
-   move(3,0);
-   addstr("4. Change alien bomb speed");
-   move(4,0);
-   addstr("5. Change alien bomb dropping frequency");
-   move(5,0);
-   addstr("6. Return to the game");
-   move(6,0);
-   addstr("7. Exit the game");
-   move(8,0);
-   addstr("Enter your option: ");
-   refresh();
-   
-   while(1) {
-      move(8,19);
-      option = getch();
-      move(9,0);
-      deleteln();
-      move(10,0);
-      deleteln();
-      move(11,0);
-      deleteln();
-      
-      if (option == '1') {
-         sprintf(buf,"Current value: %d\n", settings->overall);
-         
-         move(9,0);
-         addstr(buf);
-         move(10,0);
-         addstr("Enter new value: ");
-         move(10,17);
-         refresh();
-         getch();
-         getstr(buf);
-         
-         new = atoi(buf);
-         
-         /* Check for valid new value */
-         if (new < 0) {
-            move(11,0);
-            addstr("ERROR: Inalid value");
-         }
-         else {
-            settings->overall = new;
-         }  
-      }
-      else if (option == '2') {
-         sprintf(buf,"Current value: %d\n", settings->alien);
-         
-         move(9,0);
-         addstr(buf);
-         move(10,0);
-         addstr("Enter new value: ");
-         move(10,17);
-         refresh();
-         getch();
-         getstr(buf);
-         
-         new = atoi(buf);
-         
-         /* Check for valid new value */
-         if (new <= 0) {
-            move(11,0);
-            addstr("ERROR: Inalid value");
-         }
-         else {
-            settings->alien = new;
-         }  
-      }
-      else if (option == '3') {
-         sprintf(buf,"Current value: %d\n", settings->shots);
-         
-         move(9,0);
-         addstr(buf);
-         move(10,0);
-         addstr("Enter new value: ");
-         move(10,17);
-         refresh();
-         getch();
-         getstr(buf);
-         
-         new = atoi(buf);
-         
-         /* Check for valid new value */
-         if (new <= 0) {
-            move(11,0);
-            addstr("ERROR: Inalid value");
-         }
-         else {
-            settings->shots = new;
-         }  
-      }
-      else if (option == '4') {
-         sprintf(buf,"Current value: %d\n", settings->bombs);
-         
-         move(9,0);
-         addstr(buf);
-         move(10,0);
-         addstr("Enter new value: ");
-         move(10,17);
-         refresh();
-         getch();
-         getstr(buf);
-         
-         new = atoi(buf);
-         
-         /* Check for valid new value */
-         if (new <= 0) {
-            move(11,0);
-            addstr("ERROR: Inalid value");
-         }
-         else {
-            settings->bombs = new;
-         }  
-      }
-      else if (option == '5') {
-         sprintf(buf,"Current value: %d\n", settings->bombchance);
-         
-         move(9,0);
-         addstr(buf);
-         move(10,0);
-         addstr("Enter new value: ");
-         move(10,17);
-         refresh();
-         getch();
-         getstr(buf);
-         
-         new = atoi(buf);
-         
-         /* Check for valid new value */
-         if (new > 100 || new < 0) {
-            move(11,0);
-            addstr("ERROR: Inalid value");
-         }
-         else {
-            settings->bombchance = new;
-         }  
-      }
-      else if (option == '6') {
-         break;
-      }
-      else if (option == '7') {
-         endwin();
-         exit(0);
-      }
-      else {
-         move(9,0);
-         addstr("ERROR: Invalid selection");
-         move(8,19);
-         addstr(" ");
-         refresh();        
-      }
-   }
-   
-   clear();
-   noecho();
-   cbreak();
-   nodelay(stdscr,1);
-   
-   move(0,(COLS/2)-9);
-   addstr("--SPACE INVADERS--");
-   move (0,1);
-   addstr("SCORE: ");
-   move(0,COLS-19);
-   addstr("m = menu  q = quit");
-}
 
 /* This function handles displaying the win/lose screen */
 void gameover(int win) {
