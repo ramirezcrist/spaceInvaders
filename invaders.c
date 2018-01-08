@@ -10,7 +10,7 @@
 #include "invaderstructs.h"
 #include <sys/sem.h>
 #define MAX_BOMBS 1000
-#define SHSIZE 1000
+#define SHSIZE 100
 
   key_t Llave; 
   int semaforo; 
@@ -89,9 +89,42 @@ int invasor(){
 	sleep(1);
 	printf("   JUEGUEN!! \n");
 	sleep(1);
+
+	//compartiendo memoria
+	int shmid;
+	key_t key;
+	char *shm;
+	char *s;
+	
+	key = 9866;
+
+	shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
+	if(shmid < 0)
+	{
+	perror("shmget");	
+	exit(1);
+	}
+	shm = shmat(shmid, NULL, 0);
+	if (shm ==(char *) -1)
+	{
+			perror("shmat");
+			exit(1);
+	}
+
+	for(s = shm; *s != 0; s++)
+		printf("%c", *s);	
+	
+	printf("\n");
+	*shm = '*';
+
+ //fin mem share
+
+
  	break;
 	}
 //semaforo
+sleep(3);
+ 
 
 return 0;
 }
@@ -121,6 +154,58 @@ int defensor(){
 	sleep(1);
 	printf("   JUEGUEN!! \n");
 	sleep(1);
+
+
+//Creating share memory parameters
+	int shmid;
+	key_t key;
+	char *shm;
+	char *s;
+	
+	key = 9866;
+
+	shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
+	if(shmid < 0)
+	{
+	perror("shmget");	
+	exit(1);
+	}
+	shm = shmat(shmid, NULL, 0);
+	if (shm ==(char *) -1)
+	{
+			perror("shmat");
+			exit(1);
+	}
+	
+	//fseek(fp, 0, SEEK_END);//To know the heigh of the file
+	//tamanio = ftell(fp);
+	//itoa(score,punteo,10);	
+	memcpy(shm, "Sistemas Operativos", 19);
+	
+	
+	s = shm;
+	s += 19;
+
+	*s = 0;
+	while(*shm != '*')
+		sleep(1);
+	
+
+//Creating share file
+	FILE *fp;
+	char buffer[] = "SpaceInvaders Sistemas Operativos1\n";
+	
+	fp = fopen ("fichero.txt", "a");
+
+	fputs( buffer, fp);
+	fclose(fp);
+   //End of share file
+
+
+   //Ending share memory paramet
+
+
+
  	break;
 	 	//} 
 		//else{ 
@@ -139,53 +224,14 @@ int defensor(){
    struct shoot shot[3];
    struct bomb bomb[MAX_BOMBS];
    struct options settings;
-   unsigned int input, loops=0, i=0, j=0, currentshots=0, currentbombs=0, currentaliens=30;
+   unsigned int input, loops=0, i=0, j=0, currentshots=0,      currentbombs=0, currentaliens=30;
    int random=0, score=0, win=-1;
+   char punteo[5] = "0000";
    char tellscore[30];
    
-   //Creating share file
-	FILE *fp;
-	char buffer[] = "SpaceInvaders Sistemas Operativos1\n";
-	
-	fp = fopen ("fichero.txt", "a");
+   
 
-	fputs( buffer, fp);
-	fclose(fp);
-   //End of share file
- //Creating share memory parameters
-	int shmid;
-	key_t key;
-	char *shm;
-	char *s;
-	int tamanio;
-	
-	
-	key = 9867;
 
-	shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
-	if(shmid < 0)
-	{
-	perror("shmget");	
-	exit(1);
-	}
-	shm = shmat(shmid, NULL, 0);
-	if (shm ==(char *) -1)
-	{
-			perror("shmat");
-			exit(1);
-	}
-	
-	fseek(fp, 0, SEEK_END);//To know the heigh of the file
-	tamanio = ftell(fp);	
-	memcpy(shm, &fp, 37);
-	s = shm;
-	s += 37;
-
-	*s = 0;
-	//while(*shm != '*')
-	//	sleep(1);
-	
-   //Ending share memory parameter
 
    initscr();
    clear();
