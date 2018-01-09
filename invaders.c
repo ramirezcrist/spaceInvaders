@@ -9,19 +9,23 @@
 #include <unistd.h>
 #include "invaderstructs.h"
 #include <sys/sem.h>
+#include <sys/ipc.h>
 #define MAX_BOMBS 1000
-#define SHSIZE 100
+#define SHSIZE 5
 
   key_t Llave; 
   int semaforo; 
   int cantidadJugadores;
   struct sembuf Proceso; 
   struct sembuf Proceso2; 
-  
+        char *shm;
+	char *s;
+        int shmid;
   void menu(struct options *settings);
   void gameover(int win);
   int defensor();
   int invasor();
+
 union semun{ 
   int val; 
   struct semid_ds * buf; 
@@ -44,11 +48,25 @@ int main() {
 
 
   initscr();
-inicio:
-  mvaddstr(0,(COLS/2)-12, "SELECCIONE: A. Defensor");
+
+  mvaddstr(0,1, "-------------------------------------------------------------------------------");
+  refresh();
+mvaddstr(1,1,   ":::::::::::::::::::::::SPACE::::::::::::::::::INVADERS:::::::::::::::::::::::::");
   refresh();
 
-  mvaddstr(1,(COLS/2), "B. Invasor");
+mvaddstr(2,1,   "-------------------------------------------------------------------------------");
+  refresh();
+
+  mvaddstr(3,(COLS/2)-12, "SELECCIONE: A. Defensor");
+  refresh();
+
+  mvaddstr(4,(COLS/2), "B. Invasor");
+  refresh();
+
+  mvaddstr(5,1,"------------------------------------------------------------------------------");
+  refresh();
+
+mvaddstr(7,1,  "------------------------------------------------------------------------------");
   refresh();
   move(2,0);
   refresh();
@@ -63,6 +81,12 @@ inicio:
 	        invasor();
   }  
   	endwin();		
+
+
+	shmdt (shm);
+	shmctl (shmid, IPC_RMID, 0); //se limpia la memoria compartida
+
+
   return 0;
  
 }
@@ -80,9 +104,13 @@ int invasor(){
  
 	while (1){ 
 
-        printf("Invasor, esperando al oponente defensor.... \n");
+mvaddstr(9,1,"Invasor, esperando al oponente defensor...");
+  refresh();
+
+   
  	semop (semaforo, &Proceso2, 1);
- 
+ move(10,1);
+refresh();
     	printf("   En sus marcas..!! \n");
 	sleep(1);
 	printf("   Listos..?! \n");
@@ -91,14 +119,14 @@ int invasor(){
 	sleep(1);
 
 	//compartiendo memoria
-	int shmid;
+	//int shmid;
 	key_t key;
-	char *shm;
-	char *s;
-	
+	//char *shm;
+	//char *s;
+	int valor;
 	key = 9866;
 
-	shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
+	/*shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
 	if(shmid < 0)
 	{
 	perror("shmget");	
@@ -117,15 +145,28 @@ int invasor(){
 	printf("\n");
 	*shm = '*';
 
- //fin mem share
+       //fin mem share
+	*/
+	if ((shmid = shmget(key, SHSIZE, 0666)) < 0){
+	        perror("shmget");	
+		exit(1);        
+	}
+    
+    if ((shm = shmat(shmid, NULL, 0)) == (char *) -1){
+        perror("shmat");
+			exit(1);}
+    //Now read what the server put in the memory.
+  
+   for(s = shm; *s != 0; s++)
+		printf("%c", *s);
 
 
  	break;
-	}
+	
+}
 //semaforo
-sleep(5);
+sleep(6);
  
-
 return 0;
 }
 
@@ -144,10 +185,13 @@ int defensor(){
  
 	while (1){ 
 
-        printf("\n Defensor, esperando al oponente invasor.... \n");
+mvaddstr(9,1,"Defensor, esperando al oponente invasor....");
+  refresh();
+       
  	semop (semaforo, &Proceso, 1);
 
-	
+	move(10,1);
+refresh();
     	printf("   En sus marcas..!! \n");
 	sleep(1);
 	printf("   Listos..?! \n");
@@ -157,21 +201,19 @@ int defensor(){
 
 
 //Creating share memory parameters
-	int shmid;
+	//int shmid;
 	key_t key;
-	char *shm;
-	char *s;
+	//char *shm;
+       //	char *s;
 	
 	key = 9866;
 
-	shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
-	if(shmid < 0)
+	if ((shmid = shmget(key, SHSIZE, IPC_CREAT | 0666)) < 0)
 	{
 	perror("shmget");	
 	exit(1);
 	}
-	shm = shmat(shmid, NULL, 0);
-	if (shm ==(char *) -1)
+	if ((shm = shmat(shmid, NULL, 0)) == (char *) -1)
 	{
 			perror("shmat");
 			exit(1);
@@ -179,17 +221,14 @@ int defensor(){
 	
 	//fseek(fp, 0, SEEK_END);//To know the heigh of the file
 	//tamanio = ftell(fp);
-	//itoa(score,punteo,10);	
-	memcpy(shm, "Sistemas Operativos", 19);
-	
+	//itoa(score,punteo,10);
 	
 	s = shm;
-	s += 19;
-
-	*s = 0;
-	while(*shm != '*')
-		sleep(1);
+        *s++ = 10;
+   
+	//memcpy(shm, "Sistemas Operativos", 19);
 	
+
 
 //Creating share file
 	FILE *fp;
@@ -491,6 +530,7 @@ int defensor(){
    
    gameover(win);
    endwin();
+
    return 0;
 }
 
