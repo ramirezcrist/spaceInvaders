@@ -10,21 +10,29 @@
 #include "invaderstructs.h"
 #include <sys/sem.h>
 #include <sys/ipc.h>
+#include <pthread.h>
 #define MAX_BOMBS 1000
-#define SHSIZE 5
+#define SHSIZE 2
 
+  /*---SEMAFOROS--------*/
   key_t Llave; 
   int semaforo; 
   int cantidadJugadores;
+  
   struct sembuf Proceso; 
   struct sembuf Proceso2; 
-        char *shm;
-	char *s;
+
+  /*-----MEMORIA COMPARTIDA------*/       
+	int *shm = 0;
+	int *s = 0;
         int shmid;
+  /*-----GLOBALES JUEGO----------*/
   void menu(struct options *settings);
   void gameover(int win);
+  void *reloj(void *msg);
   int defensor();
   int invasor();
+  
 
 union semun{ 
   int val; 
@@ -36,6 +44,7 @@ union semun{
 
 int main() {
   char jugador;
+  char player;
   cantidadJugadores = 0;
 
   //semaforo
@@ -46,15 +55,43 @@ int main() {
  
   //end semafo
 
+		//compartiendo memoria
+	 		key_t key;
+		
+			key = ftok ("/bin/ls", 125);;
+		
+			shmid = shmget(key, sizeof(int)*3, IPC_CREAT | 0777);
+			
+			if(shmid < 0)
+			{
+			   perror("shmget");
+				exit(1);
+			}
+			shm = (int *)shmat(shmid, NULL, 0);
+
+			if(shm == (int *) -1)
+			{
+				perror("shmat");
+					exit(1);
+			}
+	
+					
+
+			 s = shm;
+		// [0] : inicio
+		// [1] : score
+		// [3] : timer
+	 	//fin share memory
+
 
   initscr();
 
   mvaddstr(0,1, "-------------------------------------------------------------------------------");
   refresh();
-mvaddstr(1,1,   ":::::::::::::::::::::::SPACE::::::::::::::::::INVADERS:::::::::::::::::::::::::");
+  mvaddstr(1,1,   ":::::::::::::::::::::::SPACE::::::::::::::::::INVADERS:::::::::::::::::::::::::");
   refresh();
 
-mvaddstr(2,1,   "-------------------------------------------------------------------------------");
+  mvaddstr(2,1,   "-------------------------------------------------------------------------------");
   refresh();
 
   mvaddstr(3,(COLS/2)-12, "SELECCIONE: A. Defensor");
@@ -66,24 +103,37 @@ mvaddstr(2,1,   "---------------------------------------------------------------
   mvaddstr(5,1,"------------------------------------------------------------------------------");
   refresh();
 
-mvaddstr(7,1,  "------------------------------------------------------------------------------");
+  mvaddstr(7,1,  "------------------------------------------------------------------------------");
   refresh();
-  move(2,0);
+ 
+  move(12,0);
   refresh();
-  jugador = getch();
+ 
+        player = getch();
+	refresh();    
 
-  if(jugador == 'A'){
-		
-		defensor();
-           	
-  }else if(jugador == 'B'){
-	
-	        invasor();
-  }  
+		  if(player == 'A'){
+
+
+					*shm = shm[0] + 1;
+
+		 			printf("%d",shm[0]);
+					refresh();
+					defensor();
+			
+		  }
+		  if(player == 'B'){
+
+					*shm = shm[0] + 1;
+		 			printf("%d",shm[0]);
+					refresh();
+						invasor();
+		  }
+		 
+  
   	endwin();		
 
-
-	shmdt (shm);
+	shmdt ((char *)shm);
 	shmctl (shmid, IPC_RMID, 0); //se limpia la memoria compartida
 
 
@@ -92,186 +142,140 @@ mvaddstr(7,1,  "----------------------------------------------------------------
 }
 
 int invasor(){
+
    clear();
    echo();
    nocbreak();
    nodelay(stdscr,0);
-//semaforo
+	
 
- 	Proceso2.sem_num = 0; 
- 	Proceso2.sem_op  = 1;
- 	Proceso2.sem_flg = 0;
- 
-	while (1){ 
+	       //compartiendo memoria para semaforo inicial
+		       	printf("VALOR DEL Shm INVASOR : %d", *shm);
+               		
+			
+			if(*shm==1){
+ 			
+				mvaddstr(9,1,"Invasor, esperando al oponente defensor...");
+			 	refresh();
+			
+				Proceso.sem_num = 0; 
+	 			Proceso.sem_op  = -1;
+	 			Proceso.sem_flg = 0;
+	    			
+		 		semop (semaforo, &Proceso, 1);
+				
+			}
+			Proceso.sem_num = 0; 
+ 			Proceso.sem_op  = 1;
+ 			Proceso.sem_flg = 0;
+    			
+	 		semop (semaforo, &Proceso, 1);
+		//fin share memory and semaphore
+	 	
+		move(10,1);
+		refresh();
+		
+	    	printf("   En sus marcas..!! \n");
+		sleep(1);
+		printf("   Listos..?! \n");
+		sleep(1);
+		printf("   A JUGAR!!! \n");
+		sleep(1);
 
-mvaddstr(9,1,"Invasor, esperando al oponente defensor...");
-  refresh();
-
-   
- 	semop (semaforo, &Proceso2, 1);
- move(10,1);
+/*-------SCREEN SETTINGS--------*/
+   initscr();
+   clear();
+   noecho();
+   cbreak();
+   nodelay(stdscr,1);
+   keypad(stdscr,1);
+   srand(time(NULL)); 
 refresh();
-    	printf("   En sus marcas..!! \n");
-	sleep(1);
-	printf("   Listos..?! \n");
-	sleep(1);
-	printf("   JUEGUEN!! \n");
-	sleep(1);
 
-	//compartiendo memoria
-	//int shmid;
-	key_t key;
-	//char *shm;
-	//char *s;
-	int valor;
-	key = 9866;
-
-	/*shmid = shmget(key, SHSIZE, IPC_CREAT | 0666);
-	if(shmid < 0)
-	{
-	perror("shmget");	
-	exit(1);
-	}
-	shm = shmat(shmid, NULL, 0);
-	if (shm ==(char *) -1)
-	{
-			perror("shmat");
-			exit(1);
-	}
-
-	for(s = shm; *s != 0; s++)
-		printf("%c", *s);	
+char tellscore[30];
+char telltimer[30];
+/*-------SCREEN-------------------*/
+   mvaddstr(0,(COLS/2)-9, "Space Invaders Sopes 1");
 	
-	printf("\n");
-	*shm = '*';
+   move (0,1);
+   addstr("SCORE OPONENT: ");
+   move(0,COLS-19);
+   addstr("Q = Salir");
+   refresh();
 
-       //fin mem share
-	*/
-	if ((shmid = shmget(key, SHSIZE, 0666)) < 0){
-	        perror("shmget");	
-		exit(1);        
-	}
-    
-    if ((shm = shmat(shmid, NULL, 0)) == (char *) -1){
-        perror("shmat");
-			exit(1);}
-    //Now read what the server put in the memory.
-  
-   for(s = shm; *s != 0; s++)
-		printf("%c", *s);
+	while(1){//PARA SALIR DEL JUEGO
+		
+	      sprintf(tellscore, "%d", shm[1]);
+	      mvaddstr(0,15, tellscore);
+	      		refresh();
+	      sprintf(telltimer, "%d", shm[2]);
+	      mvaddstr(0,(COLS/2)+15, telltimer);
+	      move(2,0);		
+	      refresh();
+	      
+	     
+		if(*shm==3)
+		{
+			break;
+		}
+	      }
 
 
- 	break;
 	
-}
-//semaforo
-sleep(6);
  
 return 0;
 }
 
 int defensor(){
+ /*---------varibles pantalla---*/
    clear();
    echo();
    nocbreak();
    nodelay(stdscr,0);
+	
 
- //semaforo
- 
- 
- 	Proceso.sem_num = 0; 
- 	Proceso.sem_op = -1;
+	       //compartiendo memoria para semaforo inicial
+		       	printf("VALOR DEL Shm DEFENSOR : %d", *shm);
+  //semaforo
+
+
+	if(*shm==1){
+	 	Proceso.sem_num = 0; 
+	 	Proceso.sem_op = -1;
+	 	Proceso.sem_flg = 0;
+	 
+
+	  	mvaddstr(9,1,"Defensor, esperando al oponente invasor....");
+	  	refresh();
+	       
+	 	semop (semaforo, &Proceso, 1);
+	}
+	Proceso.sem_num = 0; 
+ 	Proceso.sem_op = 1;
  	Proceso.sem_flg = 0;
- 
-	while (1){ 
-
-mvaddstr(9,1,"Defensor, esperando al oponente invasor....");
-  refresh();
-       
  	semop (semaforo, &Proceso, 1);
-
+  //fin semaforo
 	move(10,1);
-refresh();
+	refresh();
+
     	printf("   En sus marcas..!! \n");
 	sleep(1);
+
 	printf("   Listos..?! \n");
 	sleep(1);
+
 	printf("   JUEGUEN!! \n");
 	sleep(1);
 
 
-//Creating share memory parameters
-	//int shmid;
-	key_t key;
-	//char *shm;
-       //	char *s;
-	
-	key = 9866;
+	   //Creating share memory parameters
 
-	if ((shmid = shmget(key, SHSIZE, IPC_CREAT | 0666)) < 0)
-	{
-	perror("shmget");	
-	exit(1);
-	}
-	if ((shm = shmat(shmid, NULL, 0)) == (char *) -1)
-	{
-			perror("shmat");
-			exit(1);
-	}
-	
-	//fseek(fp, 0, SEEK_END);//To know the heigh of the file
-	//tamanio = ftell(fp);
-	//itoa(score,punteo,10);
-	
-	s = shm;
-        *s++ = 10;
+
+	   //Ending share memory paramet
+
+
    
-	//memcpy(shm, "Sistemas Operativos", 19);
-	
-
-
-//Creating share file
-	FILE *fp;
-	char buffer[] = "SpaceInvaders Sistemas Operativos1\n";
-	
-	fp = fopen ("fichero.txt", "a");
-
-	fputs( buffer, fp);
-	fclose(fp);
-   //End of share file
-
-
-   //Ending share memory paramet
-
-
-
- 	break;
-	 	//} 
-		//else{ 
-		//printf("%d Esperando semaforo en verde.... \n",ix);
-	 	//semop (semaforo, &Proceso, 1);
-	 	// AREA PROTEGIDA 
-		//printf("%d Saliendo del area critica - Semaforo en rojo \n",ix); 
-		//ix++;
-		// }
- 	}//fin del while
-//fin semaforo
-   
-
-   struct player tank;
-   struct alien aliens[30];
-   struct shoot shot[3];
-   struct bomb bomb[MAX_BOMBS];
-   struct options settings;
-   unsigned int input, loops=0, i=0, j=0, currentshots=0,      currentbombs=0, currentaliens=30;
-   int random=0, score=0, win=-1;
-   char punteo[5] = "0000";
-   char tellscore[30];
-   
-   
-
-
-
+  /*-------SCREEN--------*/
    initscr();
    clear();
    noecho();
@@ -280,6 +284,32 @@ refresh();
    keypad(stdscr,1);
    srand(time(NULL)); 
 
+
+ /*------variables JUEGO------*/
+
+   struct player tank;
+   struct alien aliens[30];
+   struct shoot shot[3];
+   struct bomb bomb[MAX_BOMBS];
+   struct options settings;
+   unsigned int input, loops=0, i=0, j=0, currentshots=0,      currentbombs=0, currentaliens=30;
+   int random=0, score=0, win=-1;
+   int timer = 0;
+   
+   char punteo[5] = "0000";
+   char tellscore[30];
+   char telltimer[30];
+   shm[1] = score;//compartiendo punteo
+   shm[2] = timer;//compartiendo tiempo
+
+   char *msg ="time";
+  //----------------------------TIMER---------------------
+	sleep(1);
+	pthread_t thread1;
+	pthread_create(&thread1, NULL, reloj, (void *) msg);
+  //-----------------END TIMER-------------------------
+
+  
    /* Set default settings */
    settings.overall = 15000;
    settings.alien = 12;
@@ -339,11 +369,15 @@ refresh();
   // addstr("--SPACE INVADERS--");
    mvaddstr(0,(COLS/2)-9, "Space Invaders Sopes 1");
 	
-   move (0,1);
+   move(0,1);
    addstr("SCORE: ");
+
    move(0,COLS-19);
    addstr("Q = Salir");
    
+   
+   		
+
    while(1) {
       /* Show score */
       sprintf(tellscore, "%d", score);
@@ -393,7 +427,9 @@ refresh();
                
                for (j=0; j<30; ++j) {
                   if (aliens[j].alive == 1 && aliens[j].r == shot[i].r && aliens[j].pc == shot[i].c) {
-                     score += 10; //se suman 2
+                
+		     score += 10; //se suman 2
+		     shm[1] = score;	
                      aliens[j].alive = 0;
                      shot[i].active = 0;
                      --currentshots;
@@ -527,7 +563,7 @@ refresh();
       else if (tank.c < 0)
          tank.c = 0;     
    }
-   
+   *shm = shm[0] + 1;
    gameover(win);
    endwin();
 
@@ -562,18 +598,24 @@ void gameover(int win) {
       getch();
    }
 }
-/*This function allows append the new data to the screen
-void setInFile(const char[]){
-FILE *fp;
-	char buffer[] = char[];
-	strcat(buffer,'\n');
-	fp = fopen ("fichero.txt", "a");
+void *reloj(void *myvar){
+   char telltimer[30];   
 
-	fputs( buffer, fp);
-	fclose(fp);
-	
+	for(int i = 0; i< 100; i++){
+	shm[2] ++;
+
+	sleep(1);
+              sprintf(telltimer, "%d", shm[2]);
+	      mvaddstr(0,(COLS/2)+15, telltimer);
+	      refresh();
+		if(*shm==3)
+		{
+			
+		}
+		
 }
-*/
+   	
+}
 
 
 
