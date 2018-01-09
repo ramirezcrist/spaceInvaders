@@ -117,17 +117,17 @@ int main() {
 
 					*shm = shm[0] + 1;
 
-		 			printf("%d",shm[0]);
-					refresh();
+		 			//printf("%d",shm[0]);
+					//refresh();
 					defensor();
 			
 		  }
 		  if(player == 'B'){
 
 					*shm = shm[0] + 1;
-		 			printf("%d",shm[0]);
-					refresh();
-						invasor();
+		 			//printf("%d",shm[0]);
+					//refresh();
+					invasor();
 		  }
 		 
   
@@ -150,7 +150,7 @@ int invasor(){
 	
 
 	       //compartiendo memoria para semaforo inicial
-		       	printf("VALOR DEL Shm INVASOR : %d", *shm);
+		       //printf("VALOR DEL Shm INVASOR : %d", *shm);
                		
 			
 			if(*shm==1){
@@ -205,10 +205,11 @@ char telltimer[30];
 
 	while(1){//PARA SALIR DEL JUEGO
 		
-	      sprintf(tellscore, "%d", shm[1]);
+	      sprintf(tellscore, "%d", shm[1]);  //SCORE
 	      mvaddstr(0,15, tellscore);
 	      		refresh();
-	      sprintf(telltimer, "%d", shm[2]);
+
+	      sprintf(telltimer, "%d", shm[2]); // TIMER
 	      mvaddstr(0,(COLS/2)+15, telltimer);
 	      move(2,0);		
 	      refresh();
@@ -235,7 +236,7 @@ int defensor(){
 	
 
 	       //compartiendo memoria para semaforo inicial
-		       	printf("VALOR DEL Shm DEFENSOR : %d", *shm);
+		 //  	printf("VALOR DEL Shm DEFENSOR : %d", *shm);
   //semaforo
 
 
@@ -613,9 +614,10 @@ void *reloj(void *myvar){
 			
 		}
 		
-}
+	}
    	
 }
+
 
 
 
