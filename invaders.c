@@ -63,7 +63,7 @@ int main() {
 		
 			key = ftok ("/bin/ls", 125);;
 		
-			shmid = shmget(key, sizeof(int)*3, IPC_CREAT | 0777);
+			shmid = shmget(key, sizeof(int)*4, IPC_CREAT | 0777);
 			
 			if(shmid < 0)
 			{
@@ -221,17 +221,18 @@ char telltimer[30];
 	      move(2,0);		
 	      refresh();
 	      
-	     
+	      
 		if(*shm==3)
 		{
 			break;
 		}
 	      }
 
-  
-
-
-
+  if(shm[3]==1){
+	gameover(0);
+	}else{
+	gameover(1);
+	}
 
 	
  
@@ -313,6 +314,7 @@ int defensor(){
    char telltimer[30];
    shm[1] = score;//compartiendo punteo
    shm[2] = timer;//compartiendo tiempo
+   shm[3] = win; //compartiendo win
 
    char *msg ="time";
   //----------------------------TIMER---------------------
@@ -517,21 +519,25 @@ int defensor(){
       /* See if game has been won or lost*/
       if (currentaliens == 0) {
          win = 1;
+	 shm[3] = win;
          break;
       }
 	if (score == 100) {
          win = 1;
+	shm[3] = win;
          break;
       }
       for (i=0; i<30; ++i) {
          if (aliens[i].r == LINES-1) {
             win = 0;
+		shm[3] = win;
             break;
          }
       }
       for (i=0; i<MAX_BOMBS; ++i) {
          if (bomb[i].r == tank.r && bomb[i].c == tank.c) {
             win = 0;
+	shm[3] = win;
             break;
          }
       }    
