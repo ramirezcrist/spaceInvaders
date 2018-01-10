@@ -43,8 +43,11 @@ union semun{
 
 
 int main() {
+
+
   char jugador;
   char player;
+  char regresar;
   cantidadJugadores = 0;
 
   //semaforo
@@ -83,7 +86,7 @@ int main() {
 		// [3] : timer
 	 	//fin share memory
 
-
+inicio:
   initscr();
 
   mvaddstr(0,1, "-------------------------------------------------------------------------------");
@@ -120,17 +123,21 @@ int main() {
 		 			//printf("%d",shm[0]);
 					//refresh();
 					defensor();
-			
+		
 		  }
 		  if(player == 'B'){
-
+		  
 					*shm = shm[0] + 1;
 		 			//printf("%d",shm[0]);
 					//refresh();
 					invasor();
 		  }
 		 
-  
+	/*regresar = getch();
+  	
+	if(regresar == 'R'){
+		goto inicio;
+	}*/
   	endwin();		
 
 	shmdt ((char *)shm);
@@ -220,6 +227,10 @@ char telltimer[30];
 			break;
 		}
 	      }
+
+  
+
+
 
 
 	
@@ -611,10 +622,12 @@ void *reloj(void *myvar){
 	      refresh();
 		if(*shm==3)
 		{
-			
+			i=100;		
+		//goto salida;
 		}
 		
 	}
+	//salida
    	
 }
 
